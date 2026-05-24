@@ -118,33 +118,8 @@ impl Cpu {
             Instruction::AddValue { reg, val } => self.registers[reg as usize] += val,
             Instruction::SetI(address) => self.index = address,
             Instruction::Display { vx, vy, val } => {
-                // TODO: fix this shit
-                /*
-                 * grid: [
-                 * [0, 1, 2, 3, 4, 5,],
-                 * [6, 7, 8, 9, 10, 11],
-                 * [12, 13, 14, 15, ...],
-                 * [..., 99, 100, 101, 102]
-                 * ]
-                 * in 1d array
-                 * nth elem = y*width + x
-                 * grid is 64 width 32 tall each pixel is a bit 1/0
-                 * 1 sprite 8 bits width 1-15 bytes tall
-                 * each 1bit in byte of font is toggling the bit on the screen and there are
-                 * N bytes of the font for sprite that tells how tall is it
-                 */
-                /*
-                 * for i in 0..val {
-                    for _ in 0..=self.mem[self.index as usize + i as usize] {
-                        let before = screen.grid[(self.registers[vy as usize] * SCREEN_WIDTH as u8 + self.registers[vx as usize]) as usize];
-                        screen.set_pixel(self.registers[vx as usize] as usize, self.registers[vy as usize] as usize, 1);
-                        let after = screen.grid[(self.registers[vy as usize] * SCREEN_WIDTH as u8 + self.registers[vx as usize]) as usize];
-                        self.registers[0xF] = if before == 1 && after == 0 { 1 } else { 0 };
-                    }
-                }
-                 */
-                    let start_x = self.registers[vx as usize] as usize % SCREEN_WIDTH;
-                    let start_y = self.registers[vy as usize] as usize % SCREEN_HEIGHT;
+                let start_x = self.registers[vx as usize] as usize % SCREEN_WIDTH;
+                let start_y = self.registers[vy as usize] as usize % SCREEN_HEIGHT;
                 for row in 0..val {
                     let sprite_byte = self.mem[self.index as usize + row as usize];
 
