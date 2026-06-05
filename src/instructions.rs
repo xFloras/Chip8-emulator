@@ -15,7 +15,7 @@ pub enum Instruction {
     AddValue { reg: Register, val: Value },             // 7XNN
     SetI(Address),                                      // ANNN
     Display { vx: Register, vy: Register, val: Value }, // DXYN
-    ////
+    Call(Address),                                      // 2NNN
     SkipIE { vx: Register, val: Value },                // 3XNN
     SkipNE { vx: Register, val: Value },                // 4XNN
     SkipRE { vx: Register, vy: Register },              // 5XY0
@@ -28,6 +28,11 @@ pub enum Instruction {
     Msr { vx: Register, vy: Register },                 // 8XY6
     RevSub { vx: Register, vy: Register },              // 8XY7
     Msl { vx: Register, vy: Register },                 // 8XYE
+    SkipRN { vx: Register, vy: Register },              // 9XY0
+    JumpAdd(Address),                                   // BNNN
+    RandMask { vx: Register, val: Value },              // CXNN
+    SkipIK { vx: Register },                            // EX9E
+    SkipNK { vx: Register },                            // EXA1
     Unknown(u16),
 }
 
@@ -47,13 +52,20 @@ impl Instruction {
                 _ => Instruction::Unknown(nnn)
             },
             0x1 => Instruction::Jump(nnn),
+            0x2 => Instruction::Call(nnn),
             0x3 => Instruction::SkipIE { vx: nibble2, val: kk },
             0x4 => Instruction::SkipNE { vx: nibble2, val: kk },
             0x5 => Instruction::SkipRE { vx: nibble2, vy: nibble3 },
             0x6 => Instruction::SetRegister { reg: nibble2, val: kk },
             0x7 => Instruction::AddValue { reg: nibble2, val: kk },
             0xA => Instruction::SetI(nnn),
+            0xB => Instruction::JumpAdd(nnn),
             0xD => Instruction::Display { vx: nibble2, vy: nibble3, val: nibble4 },
+            0xE => match nibble3 {
+                0x9 => Instruction::SkipIK { vx: nibble2 },
+                0xA => Instruction::SkipNK { vx: nibble2 },
+                _ => Instruction::Unknown(nnn),
+            }
             0x8 => match nibble4 {
                 0x0 => Instruction::Mov { vx: nibble2, vy: nibble3 },
                 0x1 => Instruction::Or { vx: nibble2, vy: nibble3 },
@@ -66,6 +78,8 @@ impl Instruction {
                 0xE => Instruction::Msl { vx: nibble2, vy: nibble3 },
                 _ => Instruction::Unknown(nnn)
             }
+            0x9 => Instruction::SkipRN { vx: nibble2, vy: nibble3 },
+            0xC => Instruction::RandMask{ vx: nibble2, val: kk },
 
            _ => Instruction::Unknown(nnn),
         }
