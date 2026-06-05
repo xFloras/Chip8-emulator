@@ -117,6 +117,57 @@ impl Cpu {
             Instruction::SetRegister { reg, val } => self.registers[reg as usize] = val,
             Instruction::AddValue { reg, val } => self.registers[reg as usize] += val,
             Instruction::SetI(address) => self.index = address,
+            Instruction::SkipIE { vx, val } => {
+                if self.registers[vx as usize] == val {
+                self.pc += 2;
+            }},
+            Instruction::SkipNE { vx, val } => {
+                if self.registers[vx as usize] != val {
+                    self.pc += 2;
+                }},
+            Instruction::SkipRE { vx, vy } => {
+                if self.registers[vx as usize] == self.registers[vy as usize] {
+                    self.pc += 2;
+                }
+            },
+            Instruction::Mov { vx, vy } => {
+                self.registers[vx as usize] = self.registers[vy as usize]
+            },
+            Instruction::Or { vx, vy } => self.registers[vx as usize] |= self.registers[vy as usize],
+            Instruction::And { vx, vy } => self.registers[vx as usize] &= self.registers[vy as usize],
+            Instruction::Xor { vx, vy } => self.registers[vx as usize] ^= self.registers[vy as usize],
+            Instruction::AddReg { vx, vy } => {
+                let vx_val = self.registers[vx as usize];
+                let vy_val = self.registers[vy as usize];
+                let (result, carry) = vx_val.overflowing_add(vy_val);
+                self.registers[vx as usize] = result;
+                self.registers[0xF] = carry as u8;
+            },
+            Instruction::SubReg { vx, vy } => {
+                let vx_val = self.registers[vx as usize];
+                let vy_val = self.registers[vy as usize];
+                let (result, borrow) = vx_val.overflowing_sub(vy_val);
+                self.registers[vx as usize] = result;
+                self.registers[0xF] = !borrow as u8;
+            },
+            Instruction::Msr { vx, vy } => {
+                let vy_val = self.registers[vy as usize];
+                self.registers[0xF] = vy_val & 0x1;
+                self.registers[vx as usize] = vy_val >> 1;
+
+            },
+            Instruction::RevSub { vx, vy } => {
+                let vx_val = self.registers[vx as usize];
+                let vy_val = self.registers[vy as usize];
+                let (result, borrow) = vy_val.overflowing_sub(vx_val);
+                self.registers[vx as usize] = result;
+                self.registers[0xF] = !borrow as u8;
+            },
+            Instruction::Msl { vx, vy } => {
+                let vy_val = self.registers[vy as usize];
+                self.registers[0xF] = (vy_val >> 7) & 0x1;
+                self.registers[vx as usize] = vy_val << 1;
+            }
             Instruction::Display { vx, vy, val } => {
                 let start_x = self.registers[vx as usize] as usize % SCREEN_WIDTH;
                 let start_y = self.registers[vy as usize] as usize % SCREEN_HEIGHT;

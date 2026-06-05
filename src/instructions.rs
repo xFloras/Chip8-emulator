@@ -11,10 +11,23 @@ pub type Value = u8;
 pub enum Instruction {
     ClearScreen,                                        // 00E0
     Jump(Address),                                      // 1NNN
-    SetRegister {reg: Register, val: Value },               // 6XNN
-    AddValue { reg: Register, val: Value },                // 7XNN
+    SetRegister {reg: Register, val: Value },           // 6XNN
+    AddValue { reg: Register, val: Value },             // 7XNN
     SetI(Address),                                      // ANNN
-    Display { vx: Register, vy: Register, val: Value },    // DXYN
+    Display { vx: Register, vy: Register, val: Value }, // DXYN
+    ////
+    SkipIE { vx: Register, val: Value },                // 3XNN
+    SkipNE { vx: Register, val: Value },                // 4XNN
+    SkipRE { vx: Register, vy: Register },              // 5XY0
+    Mov { vx: Register, vy: Register },                 // 8XY0
+    Or { vx: Register, vy: Register },                  // 8XY1
+    And { vx: Register, vy: Register },                 // 8XY2
+    Xor { vx: Register, vy: Register },                 // 8XY3
+    AddReg { vx: Register, vy: Register },              // 8XY4
+    SubReg { vx: Register, vy: Register },              // 8XY5
+    Msr { vx: Register, vy: Register },                 // 8XY6
+    RevSub { vx: Register, vy: Register },              // 8XY7
+    Msl { vx: Register, vy: Register },                 // 8XYE
     Unknown(u16),
 }
 
@@ -34,12 +47,27 @@ impl Instruction {
                 _ => Instruction::Unknown(nnn)
             },
             0x1 => Instruction::Jump(nnn),
+            0x3 => Instruction::SkipIE { vx: nibble2, val: kk },
+            0x4 => Instruction::SkipNE { vx: nibble2, val: kk },
+            0x5 => Instruction::SkipRE { vx: nibble2, vy: nibble3 },
             0x6 => Instruction::SetRegister { reg: nibble2, val: kk },
             0x7 => Instruction::AddValue { reg: nibble2, val: kk },
             0xA => Instruction::SetI(nnn),
             0xD => Instruction::Display { vx: nibble2, vy: nibble3, val: nibble4 },
-           _ => Instruction::Unknown(nnn)
+            0x8 => match nibble4 {
+                0x0 => Instruction::Mov { vx: nibble2, vy: nibble3 },
+                0x1 => Instruction::Or { vx: nibble2, vy: nibble3 },
+                0x2 => Instruction::And { vx: nibble2, vy: nibble3 },
+                0x3 => Instruction::Xor { vx: nibble2, vy: nibble3 },
+                0x4 => Instruction::AddReg { vx: nibble2, vy: nibble3 },
+                0x5 => Instruction::SubReg { vx: nibble2, vy: nibble3 },
+                0x6 => Instruction::Msr { vx: nibble2, vy: nibble3 },
+                0x7 => Instruction::RevSub { vx: nibble2, vy: nibble3 },
+                0xE => Instruction::Msl { vx: nibble2, vy: nibble3 },
+                _ => Instruction::Unknown(nnn)
+            }
 
+           _ => Instruction::Unknown(nnn),
         }
 
 
