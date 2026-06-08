@@ -1,11 +1,12 @@
 use crate::cpu::Cpu;
+use crate::delay_timer::DelayTimer;
 use crate::screen::{Screen, SCREEN_WIDTH, SCREEN_HEIGHT};
 use crate::instructions::Instruction;
 use pixels::{Pixels, SurfaceTexture};
 use winit::event::{ElementState, KeyEvent};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::{application::ApplicationHandler, event::WindowEvent, window::Window};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 
 pub struct Emulator<'a> {
@@ -31,9 +32,17 @@ impl<'a> ApplicationHandler for Emulator<'a> {
         self.pixels = Some(pixels);
     }
     fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
-        let raw_opcode = self.cpu.read_opcode();
-        let instruction = Instruction::decode(raw_opcode);
-        self.cpu.execute(instruction, &mut self.screen);
+
+        if let Some(vx) = self.cpu.wait_for_key {
+            if let Some(key) = self.cpu.keys.iter().position(|&k| k ==1) {
+                self.cpu.registers[vx as usize] = key as u8;
+                self.cpu.wait_for_key = None;
+            }
+        } else {
+            let raw_opcode = self.cpu.read_opcode();
+            let instruction = Instruction::decode(raw_opcode);
+            self.cpu.execute(instruction, &mut self.screen);
+        }
 
         if let Some(window) = &self.window {
             window.request_redraw();

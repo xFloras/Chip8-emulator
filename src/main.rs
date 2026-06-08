@@ -2,9 +2,13 @@ mod instructions;
 mod screen;
 mod cpu;
 mod emulator;
+mod delay_timer;
+
+
 
 use cpu::Cpu;
 use emulator::Emulator;
+
 
 const FONT: [u8; 80] = [
 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -29,8 +33,9 @@ const FONT: [u8; 80] = [
 fn main() {
     let mut cpu = Cpu::new();
     cpu.load_font(&FONT);
-    let rom = std::fs::read("IBM Logo.ch8").expect("Failed to read file.");
+    let rom = std::fs::read("Pong2.ch8").expect("Failed to read file.");
     cpu.load_rom(&rom);
+
 
     let mut app = Emulator {
         screen: screen::Screen::new(),
@@ -39,8 +44,8 @@ fn main() {
         window: None,
     };
 
-        let event_loop = winit::event_loop::EventLoop::new().unwrap();
-        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
-        event_loop.run_app(&mut app).unwrap();
+    let event_loop = winit::event_loop::EventLoop::new().unwrap();
+    event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+    event_loop.run_app(&mut app).unwrap();
 
 }

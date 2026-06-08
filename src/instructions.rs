@@ -11,6 +11,7 @@ pub type Value = u8;
 pub enum Instruction {
     ClearScreen,                                        // 00E0
     Jump(Address),                                      // 1NNN
+    Ret,                                                // 00EE
     SetRegister {reg: Register, val: Value },           // 6XNN
     AddValue { reg: Register, val: Value },             // 7XNN
     SetI(Address),                                      // ANNN
@@ -33,6 +34,15 @@ pub enum Instruction {
     RandMask { vx: Register, val: Value },              // CXNN
     SkipIK { vx: Register },                            // EX9E
     SkipNK { vx: Register },                            // EXA1
+    MovDT { vx: Register },                             // FX07
+    SetDT { vx: Register },                             // FX15
+    SetST { vx: Register },                             // FX18
+    AddI { vx: Register },                              // FX1E
+    SetIR { vx: Register },                             // FX29
+    BCD { vx: Register },                               // FX33
+    StoreMem { vx: Register },                          // FX55
+    FillReg { vx: Register },                           // FX65
+    WaitK { vx: Register },                             // FX0A
     Unknown(u16),
 }
 
@@ -49,7 +59,9 @@ impl Instruction {
         match nibble1 {
             0x0 => match nnn {
                 0x0E0 => Instruction::ClearScreen,
+                0x0EE => Instruction::Ret,
                 _ => Instruction::Unknown(nnn)
+
             },
             0x1 => Instruction::Jump(nnn),
             0x2 => Instruction::Call(nnn),
@@ -64,6 +76,18 @@ impl Instruction {
             0xE => match nibble3 {
                 0x9 => Instruction::SkipIK { vx: nibble2 },
                 0xA => Instruction::SkipNK { vx: nibble2 },
+                _ => Instruction::Unknown(nnn),
+            },
+            0xF => match kk {
+                0x07 => Instruction::MovDT { vx: nibble2 },
+                0x15 => Instruction::SetDT { vx: nibble2 },
+                0x18 => Instruction::SetST { vx: nibble2 },
+                0x1E => Instruction::AddI { vx: nibble2 },
+                0x29 => Instruction::SetIR { vx: nibble2 },
+                0x33 => Instruction::BCD { vx: nibble2 },
+                0x55 => Instruction::StoreMem { vx: nibble2 },
+                0x65 => Instruction::FillReg { vx: nibble2 },
+                0x0A => Instruction::WaitK { vx: nibble2 },
                 _ => Instruction::Unknown(nnn),
             }
             0x8 => match nibble4 {
