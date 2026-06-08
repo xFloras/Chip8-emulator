@@ -1,20 +1,19 @@
 use crate::cpu::Cpu;
-use crate::delay_timer::DelayTimer;
-use crate::screen::{Screen, SCREEN_WIDTH, SCREEN_HEIGHT};
 use crate::instructions::Instruction;
+use crate::screen::{SCREEN_HEIGHT, SCREEN_WIDTH, Screen};
+use core::time::Duration;
 use pixels::{Pixels, SurfaceTexture};
+use std::sync::Arc;
+use std::time::Instant;
 use winit::event::{ElementState, KeyEvent};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::{application::ApplicationHandler, event::WindowEvent, window::Window};
-use std::sync::{Arc, Mutex};
-
 
 pub struct Emulator<'a> {
     pub screen: Screen,
     pub cpu: Cpu,
     pub pixels: Option<Pixels<'a>>,
     pub window: Option<Arc<Window>>,
-
 }
 impl<'a> ApplicationHandler for Emulator<'a> {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
@@ -26,33 +25,45 @@ impl<'a> ApplicationHandler for Emulator<'a> {
 
         self.window = Some(window);
         let window_ptr = Arc::as_ptr(self.window.as_ref().unwrap());
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, unsafe {&*window_ptr});
-        let pixels = Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture).unwrap();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, unsafe {
+            &*window_ptr
+        });
+        let pixels =
+            Pixels::new(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, surface_texture).unwrap();
 
         self.pixels = Some(pixels);
     }
-    fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
-
-        if let Some(vx) = self.cpu.wait_for_key {
-            if let Some(key) = self.cpu.keys.iter().position(|&k| k ==1) {
-                self.cpu.registers[vx as usize] = key as u8;
-                self.cpu.wait_for_key = None;
+    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        /*
+         * executes 7 opcodes per frame
+         */
+        for _ in 0..7 {
+            if let Some(vx) = self.cpu.wait_for_key {
+                if let Some(key) = self.cpu.keys.iter().position(|&k| k == 1) {
+                    self.cpu.registers[vx as usize] = key as u8;
+                    self.cpu.wait_for_key = None;
+                }
+                break;
             }
-        } else {
+
             let raw_opcode = self.cpu.read_opcode();
             let instruction = Instruction::decode(raw_opcode);
             self.cpu.execute(instruction, &mut self.screen);
         }
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(
+            Instant::now() + Duration::from_millis(16),
+        ));
 
         if let Some(window) = &self.window {
             window.request_redraw();
         }
     }
 
-    fn window_event(&mut self,
-    event_loop: &winit::event_loop::ActiveEventLoop,
-    _window_id: winit::window::WindowId,
-    event: WindowEvent
+    fn window_event(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        _window_id: winit::window::WindowId,
+        event: WindowEvent,
     ) {
         match event {
             WindowEvent::CloseRequested => {
@@ -61,7 +72,6 @@ impl<'a> ApplicationHandler for Emulator<'a> {
             WindowEvent::RedrawRequested => {
                 if let Some(pixels) = &mut self.pixels {
                     self.screen.render(pixels);
-
 
                     if let Err(err) = pixels.render() {
                         eprintln!("Rendering error: {}", err);
@@ -72,14 +82,14 @@ impl<'a> ApplicationHandler for Emulator<'a> {
                 if let Some(window) = &self.window {
                     window.request_redraw();
                 }
-
             }
             WindowEvent::KeyboardInput {
-                event: KeyEvent {
-                    physical_key: PhysicalKey::Code(key_code),
-                    state,
-                    ..
-                },
+                event:
+                    KeyEvent {
+                        physical_key: PhysicalKey::Code(key_code),
+                        state,
+                        ..
+                    },
                 ..
             } => {
                 let pressed = state == ElementState::Pressed;

@@ -1,11 +1,9 @@
 use crate::delay_timer::DelayTimer;
 use crate::instructions::Instruction;
-use crate::screen::{Screen, SCREEN_WIDTH, SCREEN_HEIGHT};
-use crate::FONT;
+use crate::screen::{SCREEN_HEIGHT, SCREEN_WIDTH, Screen};
 
 extern crate rand;
-use rand::{random};
-
+use rand::random;
 
 pub struct Cpu {
     pub registers: [u8; 16], // general-purpose registers V0-VF(also used as a carry flag)
@@ -17,15 +15,14 @@ pub struct Cpu {
     pub delay_timer: DelayTimer,
     pub sound_timer: DelayTimer,
     pub wait_for_key: Option<u8>,
-
 }
 
 impl Cpu {
     pub fn new() -> Self {
-            let delay_timer = DelayTimer::new();
-            let sound_timer = DelayTimer::new();
-            delay_timer.run();
-            sound_timer.run();
+        let delay_timer = DelayTimer::new();
+        let sound_timer = DelayTimer::new();
+        delay_timer.run();
+        sound_timer.run();
 
         Self {
             registers: [0u8; 16],
@@ -37,7 +34,6 @@ impl Cpu {
             delay_timer: delay_timer,
             sound_timer: sound_timer,
             wait_for_key: None,
-
         }
     }
 
@@ -49,112 +45,122 @@ impl Cpu {
             Instruction::Call(address) => {
                 self.stack.push(self.pc);
                 self.pc = address;
-            },
+            }
             Instruction::SetRegister { reg, val } => self.registers[reg as usize] = val,
-            Instruction::AddValue { reg, val } => self.registers[reg as usize] = self.registers[reg as usize].wrapping_add(val),
+            Instruction::AddValue { reg, val } => {
+                self.registers[reg as usize] = self.registers[reg as usize].wrapping_add(val)
+            }
             Instruction::SetI(address) => self.index = address,
             Instruction::SkipIE { vx, val } => {
                 if self.registers[vx as usize] == val {
-                self.pc += 2;
-            }},
+                    self.pc += 2;
+                }
+            }
             Instruction::SkipNE { vx, val } => {
                 if self.registers[vx as usize] != val {
                     self.pc += 2;
-                }},
+                }
+            }
             Instruction::SkipRE { vx, vy } => {
                 if self.registers[vx as usize] == self.registers[vy as usize] {
                     self.pc += 2;
                 }
-            },
+            }
             Instruction::Mov { vx, vy } => {
                 self.registers[vx as usize] = self.registers[vy as usize]
-            },
-            Instruction::Or { vx, vy } => self.registers[vx as usize] |= self.registers[vy as usize],
-            Instruction::And { vx, vy } => self.registers[vx as usize] &= self.registers[vy as usize],
-            Instruction::Xor { vx, vy } => self.registers[vx as usize] ^= self.registers[vy as usize],
+            }
+            Instruction::Or { vx, vy } => {
+                self.registers[vx as usize] |= self.registers[vy as usize]
+            }
+            Instruction::And { vx, vy } => {
+                self.registers[vx as usize] &= self.registers[vy as usize]
+            }
+            Instruction::Xor { vx, vy } => {
+                self.registers[vx as usize] ^= self.registers[vy as usize]
+            }
             Instruction::AddReg { vx, vy } => {
                 let vx_val = self.registers[vx as usize];
                 let vy_val = self.registers[vy as usize];
                 let (result, carry) = vx_val.overflowing_add(vy_val);
                 self.registers[vx as usize] = result;
                 self.registers[0xF] = carry as u8;
-            },
+            }
             Instruction::SubReg { vx, vy } => {
                 let vx_val = self.registers[vx as usize];
                 let vy_val = self.registers[vy as usize];
                 let (result, borrow) = vx_val.overflowing_sub(vy_val);
                 self.registers[vx as usize] = result;
                 self.registers[0xF] = !borrow as u8;
-            },
+            }
             Instruction::Msr { vx, vy } => {
                 let vy_val = self.registers[vy as usize];
                 self.registers[0xF] = vy_val & 0x1;
                 self.registers[vx as usize] = vy_val >> 1;
-
-            },
+            }
             Instruction::RevSub { vx, vy } => {
                 let vx_val = self.registers[vx as usize];
                 let vy_val = self.registers[vy as usize];
                 let (result, borrow) = vy_val.overflowing_sub(vx_val);
                 self.registers[vx as usize] = result;
                 self.registers[0xF] = !borrow as u8;
-            },
+            }
             Instruction::Msl { vx, vy } => {
                 let vy_val = self.registers[vy as usize];
                 self.registers[0xF] = (vy_val >> 7) & 0x1;
                 self.registers[vx as usize] = vy_val << 1;
-            },
+            }
             Instruction::SkipRN { vx, vy } => {
                 if self.registers[vx as usize] != self.registers[vy as usize] {
                     self.pc += 2;
                 }
-            },
+            }
             Instruction::JumpAdd(nnn) => {
                 self.pc = nnn + self.registers[0] as u16;
-            },
+            }
             Instruction::RandMask { vx, val } => {
                 let random: u8 = random();
                 self.registers[vx as usize] = random & val;
-            },
+            }
             Instruction::SkipIK { vx } => {
                 if self.keys[self.registers[vx as usize] as usize] == 1 {
                     self.pc += 2;
                 }
-            },
+            }
             Instruction::SkipNK { vx } => {
                 if self.keys[self.registers[vx as usize] as usize] == 0 {
                     self.pc += 2;
                 }
-            },
+            }
             Instruction::MovDT { vx } => self.registers[vx as usize] = self.delay_timer.get(),
             Instruction::SetDT { vx } => self.delay_timer.set(self.registers[vx as usize]),
             Instruction::SetST { vx } => self.sound_timer.set(self.registers[vx as usize]),
             Instruction::AddI { vx } => self.index += self.registers[vx as usize] as u16,
-            Instruction::SetIR { vx } => self.index = (self.registers[vx as usize] * 5) as u16 + 0x050,
+            Instruction::SetIR { vx } => {
+                self.index = (self.registers[vx as usize] * 5) as u16 + 0x050
+            }
             Instruction::BCD { vx } => {
                 let mut number = self.registers[vx as usize];
-                for i in 0..3 {
+                for i in (0..3).rev() {
                     self.mem[self.index as usize + i as usize] = number % 10;
                     number /= 10;
                 }
-            },
+            }
             Instruction::StoreMem { vx } => {
                 for i in 0..=vx {
                     self.mem[self.index as usize + i as usize] = self.registers[i as usize];
                 }
                 self.index += vx as u16 + 1;
-            },
+            }
             Instruction::FillReg { vx } => {
                 for i in 0..=vx {
                     self.registers[i as usize] = self.mem[self.index as usize + i as usize];
                 }
                 self.index += vx as u16 + 1;
-            },
+            }
             Instruction::WaitK { vx } => {
                 self.wait_for_key = Some(vx);
                 self.pc -= 2;
-
-            },
+            }
             Instruction::Display { vx, vy, val } => {
                 let start_x = self.registers[vx as usize] as usize % SCREEN_WIDTH;
                 let start_y = self.registers[vy as usize] as usize % SCREEN_HEIGHT;
@@ -170,27 +176,22 @@ impl Cpu {
                             screen.set_pixel(x, y, 1);
                             let after = screen.grid[y * SCREEN_WIDTH + x];
                             self.registers[0xF] = if before == 1 && after == 0 { 1 } else { 0 };
-
-
                         }
                     }
                 }
-
-
-
-            },
+            }
             Instruction::Unknown(val) => println!("Unknown instruction {val}"),
         }
     }
 
     pub fn load_rom(&mut self, data: &[u8]) {
-        for (i, &byte) in data.iter().enumerate(){
+        for (i, &byte) in data.iter().enumerate() {
             self.mem[0x200 + i] = byte;
         }
     }
 
     pub fn read_opcode(&mut self) -> u16 {
-        let low_byte: u16 = self.mem[(self.pc+1) as usize] as u16;
+        let low_byte: u16 = self.mem[(self.pc + 1) as usize] as u16;
         let high_byte: u16 = self.mem[self.pc as usize] as u16;
         let opcode: u16 = (high_byte << 8) | low_byte;
         self.pc += 2;
@@ -204,10 +205,7 @@ impl Cpu {
             self.mem[0x050 + i] = sprite;
         }
     }
-
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -243,7 +241,7 @@ mod tests {
         cpu.registers[0] = 200;
         cpu.registers[1] = 100;
         cpu.execute(Instruction::AddReg { vx: 0, vy: 1 }, &mut screen);
-        assert_eq!(cpu.registers[0], 44);  // 300 wraps to 44
+        assert_eq!(cpu.registers[0], 44); // 300 wraps to 44
         assert_eq!(cpu.registers[0xF], 1); // carry set
     }
 

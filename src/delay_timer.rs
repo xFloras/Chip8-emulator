@@ -1,13 +1,10 @@
-use std::time::{Duration, Instant};
-use std::thread;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
-
-pub struct DelayTimer{
+pub struct DelayTimer {
     pub time: Arc<Mutex<u8>>,
-
 }
-
 
 impl DelayTimer {
     pub fn new() -> Self {
@@ -15,7 +12,6 @@ impl DelayTimer {
             time: Arc::new(Mutex::new(0)),
         }
     }
-
 
     pub fn run(&self) {
         let time_clone = Arc::clone(&self.time);
@@ -26,7 +22,6 @@ impl DelayTimer {
                 if *time > 0 {
                     *time -= 1;
                 }
-
             }
         });
     }
@@ -38,6 +33,4 @@ impl DelayTimer {
     pub fn get(&self) -> u8 {
         *self.time.lock().unwrap()
     }
-
-
 }
