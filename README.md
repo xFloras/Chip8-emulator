@@ -83,7 +83,7 @@ A good set of public domain test ROMs for verifying correctness:
 
 - [Tobias V. Langhoff's CHIP-8 guide](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/) — plain English explanation of every opcode
 - [Instruction set](https://github.com/mattmikolay/chip-8/wiki/CHIP%E2%80%908-Instruction-Set) — complete opcode table
-- [Games] (https://github.com/netpro2k/Chip8/tree/master/games) - example games
+- [Games](https://github.com/netpro2k/Chip8/tree/master/games) - example games
 
 ## License
 
