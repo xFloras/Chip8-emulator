@@ -23,8 +23,8 @@ CHIP-8 is an interpreted programming language from the mid-1970s, originally des
 ## Building
 
 ```bash
-git clone https://github.com/yourusername/chip-8
-cd chip-8
+git clone https://github.com/xFloras/Chip8-emulator
+cd Chip8-emulator
 cargo build --release
 ```
 
